@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PromptHub - 优雅高效的本地提示词管理中心">
+  <title>PromptHub - 提示词管理器</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/styles/index.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Header -->
+    <header class="header" id="header"></header>
+    
+    <!-- Main Content -->
+    <main class="main">
+      <!-- Folder Tabs -->
+      <nav class="folder-tabs" id="folder-tabs"></nav>
+      
+      <!-- Tag Filter -->
+      <div class="tag-filter" id="tag-filter"></div>
+      
+      <!-- Prompt Grid -->
+      <div class="prompt-grid" id="prompt-grid"></div>
+    </main>
+    
+    <!-- Editor Modal -->
+    <div class="modal-overlay" id="editor-modal">
+      <div class="modal" id="editor-content"></div>
+    </div>
+    
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+  </div>
+  
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
