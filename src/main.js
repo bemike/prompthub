@@ -3,6 +3,7 @@
  */
 import { initializeDatabase } from './services/db.js';
 import { getPromptsByFolder, getPromptsByTag, searchPrompts, deletePrompt } from './services/promptService.js';
+import { getAllFolders } from './services/folderService.js';
 import { initTheme } from './utils/theme.js';
 import { renderHeader } from './components/Header.js';
 import { renderFolderTabs } from './components/FolderTabs.js';
@@ -10,6 +11,9 @@ import { renderTagFilter } from './components/TagFilter.js';
 import { renderPromptGrid } from './components/PromptCard.js';
 import { openEditor } from './components/EditorModal.js';
 import { toast } from './components/Toast.js';
+
+// localStorage 存储键
+const STORAGE_KEY_ACTIVE_FOLDER = 'prompthub_active_folder';
 
 // Application state
 const state = {
@@ -21,6 +25,29 @@ const state = {
 
 // DOM elements
 let headerEl, folderTabsEl, tagFilterEl, promptGridEl;
+
+/**
+ * 从 localStorage 获取保存的文件夹ID
+ */
+function getSavedActiveFolder() {
+    try {
+        return localStorage.getItem(STORAGE_KEY_ACTIVE_FOLDER) || 'all';
+    } catch (e) {
+        console.warn('无法读取 localStorage:', e);
+        return 'all';
+    }
+}
+
+/**
+ * 保存当前文件夹ID到 localStorage
+ */
+function saveActiveFolder(folderId) {
+    try {
+        localStorage.setItem(STORAGE_KEY_ACTIVE_FOLDER, folderId);
+    } catch (e) {
+        console.warn('无法写入 localStorage:', e);
+    }
+}
 
 /**
  * Initialize the application
@@ -41,6 +68,14 @@ async function init() {
         // Initialize database
         await initializeDatabase();
         console.log('✅ Database initialized');
+
+        // 从 localStorage 恢复文件夹状态
+        const savedFolder = getSavedActiveFolder();
+        // 验证文件夹是否存在，如果不存在则回退到 'all'
+        const folders = await getAllFolders();
+        const folderExists = savedFolder === 'all' || folders.some(f => f.id === savedFolder);
+        state.activeFolder = folderExists ? savedFolder : 'all';
+        console.log('📂 恢复文件夹状态:', state.activeFolder);
 
         // Render components
         await renderAllComponents();
@@ -126,6 +161,7 @@ function handleSearch(keyword) {
  */
 async function handleFolderChange(folderId) {
     state.activeFolder = folderId;
+    saveActiveFolder(folderId);  // 保存到 localStorage
     state.searchKeyword = '';
     state.activeTag = null;
 
@@ -173,7 +209,16 @@ async function handleTagChange(tagId) {
  */
 function handleNewPrompt() {
     openEditor(null, async () => {
-        await renderAllComponents();
+        console.log('🔄 [handleNewPrompt] 回调被调用，开始刷新...');
+        // 只刷新提示词列表，保持当前筛选状态
+        await loadAndRenderPrompts();
+        console.log('✅ [handleNewPrompt] 提示词列表刷新完成');
+        // 同时刷新文件夹标签页的计数
+        await renderFolderTabs(folderTabsEl, {
+            activeFolder: state.activeFolder,
+            onFolderChange: handleFolderChange
+        });
+        console.log('✅ [handleNewPrompt] 文件夹标签刷新完成');
     });
 }
 
@@ -182,7 +227,16 @@ function handleNewPrompt() {
  */
 function handleEditPrompt(prompt) {
     openEditor(prompt, async () => {
-        await renderAllComponents();
+        console.log('🔄 [handleEditPrompt] 回调被调用，开始刷新...');
+        // 只刷新提示词列表，保持当前筛选状态
+        await loadAndRenderPrompts();
+        console.log('✅ [handleEditPrompt] 提示词列表刷新完成');
+        // 同时刷新文件夹标签页的计数
+        await renderFolderTabs(folderTabsEl, {
+            activeFolder: state.activeFolder,
+            onFolderChange: handleFolderChange
+        });
+        console.log('✅ [handleEditPrompt] 文件夹标签刷新完成');
     });
 }
 
@@ -190,11 +244,20 @@ function handleEditPrompt(prompt) {
  * Handle delete prompt
  */
 async function handleDeletePrompt(promptId) {
+    console.log('🗑️ [handleDeletePrompt] 开始删除:', promptId);
     try {
         await deletePrompt(promptId);
+        console.log('✅ [handleDeletePrompt] 删除成功');
         toast.success('删除成功！');
-        await renderAllComponents();
+        // 只刷新提示词列表和文件夹计数，不重新渲染 Header
+        await loadAndRenderPrompts();
+        await renderFolderTabs(folderTabsEl, {
+            activeFolder: state.activeFolder,
+            onFolderChange: handleFolderChange
+        });
+        console.log('✅ [handleDeletePrompt] 页面刷新完成');
     } catch (error) {
+        console.error('❌ [handleDeletePrompt] 删除失败:', error);
         toast.error('删除失败: ' + error.message);
     }
 }

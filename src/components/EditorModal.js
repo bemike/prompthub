@@ -411,8 +411,11 @@ function setupModalEvents(allTags) {
         toast.success('创建成功！');
       }
 
+      // 先执行回调刷新数据，再关闭模态框
+      if (onSaveCallback) {
+        await onSaveCallback();
+      }
       closeEditor();
-      if (onSaveCallback) onSaveCallback();
     } catch (error) {
       toast.error('保存失败: ' + error.message);
     }
